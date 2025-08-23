@@ -36,8 +36,8 @@ jobs:
           echo "Available upstream branches:"
           echo "$BRANCHES"
           
-          # Find the most recently updated branch
-          MOST_RECENT_BRANCH=$(echo "$BRANCHES" | head -1 | cut -d' ' -f1 | sed 's/upstream\///')
+          # Find the most recently updated branch (remove upstream/ prefix)
+          MOST_RECENT_BRANCH=$(echo "$BRANCHES" | head -1 | cut -d' ' -f1 | sed 's/^upstream\///')
           MOST_RECENT_DATE=$(echo "$BRANCHES" | head -1 | cut -d' ' -f2-)
           
           echo "Most recent upstream branch: $MOST_RECENT_BRANCH (updated: $MOST_RECENT_DATE)"
@@ -57,7 +57,7 @@ jobs:
           
           # Check if sync is needed
           if [ "$CURRENT_MAINUP_SHA" = "$UPSTREAM_SHA" ]; then
-            echo "鉁?No sync needed - mainup is already up to date with upstream/$MOST_RECENT_BRANCH"
+            echo "SUCCESS: No sync needed - mainup is already up to date with upstream/$MOST_RECENT_BRANCH"
             echo "SYNC_NEEDED=false" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -73,14 +73,14 @@ jobs:
             if git merge-base --is-ancestor $CURRENT_MAINUP_SHA upstream/$MOST_RECENT_BRANCH; then
               BEHIND_COUNT=$(git rev-list --count $CURRENT_MAINUP_SHA..upstream/$MOST_RECENT_BRANCH)
               if [ "$BEHIND_COUNT" -lt 10 ]; then
-                echo "鉁?Skip sync - mainup is only $BEHIND_COUNT commits behind and no recent upstream activity"
+                echo "SUCCESS: Skip sync - mainup is only $BEHIND_COUNT commits behind and no recent upstream activity"
                 echo "SYNC_NEEDED=false" >> $GITHUB_OUTPUT
                 exit 0
               fi
             fi
           fi
           
-          echo "馃攧 Sync needed - updating mainup to upstream/$MOST_RECENT_BRANCH"
+          echo "SYNC: Sync needed - updating mainup to upstream/$MOST_RECENT_BRANCH"
           echo "SYNC_NEEDED=true" >> $GITHUB_OUTPUT
           echo "SYNCED_BRANCH=$MOST_RECENT_BRANCH" >> $GITHUB_OUTPUT
           
@@ -91,7 +91,7 @@ jobs:
           # Push the updated branch
           git push origin mainup --force
           
-          echo "鉁?Successfully synced mainup with upstream/$MOST_RECENT_BRANCH"
+          echo "SUCCESS: Successfully synced mainup with upstream/$MOST_RECENT_BRANCH"
           
           # Show sync summary
           echo "=== Sync Summary ==="
@@ -103,7 +103,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.smart_sync.outputs.SYNC_NEEDED }}" = "true" ]; then
-            echo "馃摑 Sync completed for branch: ${{ steps.smart_sync.outputs.SYNCED_BRANCH }}"
+            echo "STATUS: Sync completed for branch: ${{ steps.smart_sync.outputs.SYNCED_BRANCH }}"
           else
-            echo "馃摑 Sync skipped - no updates needed"
+            echo "STATUS: Sync skipped - no updates needed"
           fi
